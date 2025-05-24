@@ -1,36 +1,28 @@
 "use client";
 
-import {
-  useMiniKit,
-  useAddFrame,
-  useOpenUrl,
-} from "@coinbase/onchainkit/minikit";
-import {
-  Name,
-  Identity,
-  Address,
-  Avatar,
-  EthBalance,
-} from "@coinbase/onchainkit/identity";
-import {
-  ConnectWallet,
-  Wallet,
-  WalletDropdown,
-  WalletDropdownDisconnect,
-} from "@coinbase/onchainkit/wallet";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { Button } from "./components/DemoComponents";
-import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
+import { useEffect, useState } from "react";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { Button } from "@/components/ui/button";
+import { Plus, Loader2 } from "lucide-react";
+import { GroupList } from "@/components/GroupList";
+import { CreateGroupDialog } from "@/components/CreateGroupDialog";
+import { JoinGroupDialog } from "@/components/JoinGroupDialog";
+import { Group } from "@/types/group";
+import { fetchGroupsFromChain } from "@/lib/contractPlaceholders";
+import { useRouter } from "next/navigation";
 
-export default function App() {
+export default function HomePage() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
-  const [frameAdded, setFrameAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
+  const router = useRouter();
 
-  const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  // Mock user address - in real app this would come from wallet connection
+  const mockUserAddress = "0x1234567890123456789012345678901234567890";
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -38,79 +30,134 @@ export default function App() {
     }
   }, [setFrameReady, isFrameReady]);
 
-  const handleAddFrame = useCallback(async () => {
-    const frameAdded = await addFrame();
-    setFrameAdded(Boolean(frameAdded));
-  }, [addFrame]);
+  useEffect(() => {
+    loadGroups();
+  }, []);
 
-  const saveFrameButton = useMemo(() => {
-    if (context && !context.client.added) {
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAddFrame}
-          className="text-[var(--app-accent)] p-4"
-          icon={<Icon name="plus" size="sm" />}
-        >
-          Save Frame
-        </Button>
-      );
+  const loadGroups = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedGroups = await fetchGroupsFromChain();
+      setGroups(fetchedGroups);
+    } catch (error) {
+      console.error("Error loading groups:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    if (frameAdded) {
-      return (
-        <div className="flex items-center space-x-1 text-sm font-medium text-[#0052FF] animate-fade-out">
-          <Icon name="check" size="sm" className="text-[#0052FF]" />
-          <span>Saved</span>
-        </div>
-      );
+  const handleGroupCreated = (groupId: string) => {
+    console.log("Group created:", groupId);
+    loadGroups(); // Refresh the list
+  };
+
+  const handleViewDetails = (group: Group) => {
+    const isParticipant = group.participants.includes(mockUserAddress);
+    const canJoin = !isParticipant && !group.settled;
+
+    if (canJoin) {
+      setSelectedGroup(group);
+      setJoinDialogOpen(true);
+    } else {
+      // Navigate to group details page
+      router.push(`/groups/${group.id}`);
     }
+  };
 
-    return null;
-  }, [context, frameAdded, handleAddFrame]);
+  const handleJoinSuccess = () => {
+    loadGroups(); // Refresh the list to show updated participant count
+  };
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center space-x-2">
-              <Wallet className="z-10">
-                <ConnectWallet>
-                  <Name className="text-inherit" />
-                </ConnectWallet>
-                <WalletDropdown>
-                  <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownDisconnect />
-                </WalletDropdown>
-              </Wallet>
+            <h1 className="text-3xl font-bold text-foreground">LockedIn</h1>
+            <p className="text-muted-foreground mt-1">
+              Stake ETH with friends and compete in challenges
+            </p>
+          </div>
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Group
+          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-card p-4 rounded-lg border">
+            <div className="text-2xl font-bold text-card-foreground">
+              {groups.length}
+            </div>
+            <div className="text-sm text-muted-foreground">Total Groups</div>
+          </div>
+          <div className="bg-card p-4 rounded-lg border">
+            <div className="text-2xl font-bold text-card-foreground">
+              {groups.filter((g) => !g.settled).length}
+            </div>
+            <div className="text-sm text-muted-foreground">Active Groups</div>
+          </div>
+          <div className="bg-card p-4 rounded-lg border">
+            <div className="text-2xl font-bold text-card-foreground">
+              {groups.reduce((sum, g) => sum + g.participants.length, 0)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Total Participants
             </div>
           </div>
-          <div>{saveFrameButton}</div>
-        </header>
+        </div>
 
-        <main className="flex-1">
-          {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
-          {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
-        </main>
+        {/* Groups Grid */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold">All Groups</h2>
+            {isLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </div>
+            )}
+          </div>
 
-        <footer className="mt-2 pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button>
-        </footer>
+          <GroupList
+            groups={groups}
+            onViewDetails={handleViewDetails}
+            currentUserAddress={mockUserAddress}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* MiniKit Debug Info */}
+        {context && (
+          <div className="mt-12 p-4 bg-muted rounded-lg">
+            <h3 className="text-sm font-medium mb-2">MiniKit Context</h3>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>Frame Ready: {isFrameReady ? "Yes" : "No"}</div>
+              <div>User FID: {context.user?.fid || "Not connected"}</div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Dialogs */}
+      <CreateGroupDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onGroupCreated={handleGroupCreated}
+      />
+
+      <JoinGroupDialog
+        open={joinDialogOpen}
+        onClose={() => setJoinDialogOpen(false)}
+        group={selectedGroup}
+        userAddress={mockUserAddress}
+        onJoinSuccess={handleJoinSuccess}
+      />
     </div>
   );
 }
