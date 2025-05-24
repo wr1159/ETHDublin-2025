@@ -4,41 +4,77 @@ import {
   JoinGroupParams,
   SettleGroupParams,
 } from "@/types/group";
+import { abi, CONTRACT_ADDRESS } from "@/abi";
+import { Abi, parseEther } from "viem";
 
 /**
- * Placeholder contract interaction functions
- * These will be replaced with actual wagmi hooks and contract calls
+ * Real contract interaction functions using OnChainKit
+ * These return transaction data that can be used with OnChainKit Transaction component
  */
 
-export async function createGroupOnChain(
+export interface TransactionCall {
+  address: `0x${string}`;
+  abi: Abi;
+  functionName: string;
+  args?: readonly unknown[];
+  value?: bigint;
+}
+
+export async function createRoomOnChain(
   params: CreateGroupParams,
-): Promise<string> {
-  // TODO: Implement actual contract call to create a group
-  // Should return the group ID (transaction hash or UUID)
-  console.log("TODO: createGroupOnChain", params);
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
-  return `group_${Date.now()}`;
+): Promise<TransactionCall[]> {
+  const entryFeeWei = parseEther(params.entryFeeEth);
+
+  return [
+    {
+      address: CONTRACT_ADDRESS,
+      abi: abi as Abi,
+      functionName: "createRoom",
+      args: [entryFeeWei],
+    },
+  ];
 }
 
-export async function joinGroupOnChain(params: JoinGroupParams): Promise<void> {
-  // TODO: Implement actual contract call to join a group
-  // Should transfer entry fee to contract
-  console.log("TODO: joinGroupOnChain", params);
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+export async function joinRoomOnChain(
+  params: JoinGroupParams,
+  entryFeeEth: string,
+): Promise<TransactionCall[]> {
+  const entryFeeWei = parseEther(entryFeeEth);
+
+  return [
+    {
+      address: CONTRACT_ADDRESS,
+      abi: abi as Abi,
+      functionName: "joinRoom",
+      args: [BigInt(params.groupId.replace("group_", ""))],
+      value: entryFeeWei,
+    },
+  ];
 }
 
-export async function settleGroupOnChain(
+export async function settleRoomOnChain(
   params: SettleGroupParams,
-): Promise<void> {
-  // TODO: Implement actual contract call to settle a group
-  // Should transfer pooled funds to winner
-  console.log("TODO: settleGroupOnChain", params);
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+): Promise<TransactionCall[]> {
+  return [
+    {
+      address: CONTRACT_ADDRESS,
+      abi: abi as Abi,
+      functionName: "settle",
+      args: [
+        BigInt(params.groupId.replace("group_", "")),
+        params.winnerAddress as `0x${string}`,
+      ],
+    },
+  ];
 }
 
+// Read functions for fetching data from the blockchain
 export async function fetchGroupsFromChain(): Promise<Group[]> {
-  // TODO: Implement actual contract read to fetch all groups
-  console.log("TODO: fetchGroupsFromChain");
+  // TODO: Implement contract reads to fetch all groups
+  // For now, return mock data until we implement wagmi read hooks
+  console.log(
+    "TODO: fetchGroupsFromChain - implement with wagmi useReadContract",
+  );
   await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
 
   // Return mock data for now
@@ -73,8 +109,11 @@ export async function fetchGroupsFromChain(): Promise<Group[]> {
 }
 
 export async function fetchGroupById(id: string): Promise<Group | null> {
-  // TODO: Implement actual contract read to fetch a specific group
-  console.log("TODO: fetchGroupById", id);
+  // TODO: Implement contract read to fetch a specific group
+  console.log(
+    "TODO: fetchGroupById - implement with wagmi useReadContract",
+    id,
+  );
   await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
 
   const groups = await fetchGroupsFromChain();

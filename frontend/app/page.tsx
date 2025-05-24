@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import {
+  Wallet,
+  ConnectWallet,
+  WalletDropdown,
+  WalletDropdownDisconnect,
+} from "@coinbase/onchainkit/wallet";
+import {
+  Identity,
+  Name,
+  Avatar,
+  Address,
+  EthBalance,
+} from "@coinbase/onchainkit/identity";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { GroupList } from "@/components/GroupList";
@@ -10,19 +23,18 @@ import { JoinGroupDialog } from "@/components/JoinGroupDialog";
 import { Group } from "@/types/group";
 import { fetchGroupsFromChain } from "@/lib/contractPlaceholders";
 import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
 
 export default function HomePage() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
+  const { address } = useAccount();
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-
-  // Mock user address - in real app this would come from wallet connection
-  const mockUserAddress = "0x1234567890123456789012345678901234567890";
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -52,8 +64,8 @@ export default function HomePage() {
   };
 
   const handleViewDetails = (group: Group) => {
-    const isParticipant = group.participants.includes(mockUserAddress);
-    const canJoin = !isParticipant && !group.settled;
+    const isParticipant = address && group.participants.includes(address);
+    const canJoin = address && !isParticipant && !group.settled;
 
     if (canJoin) {
       setSelectedGroup(group);
@@ -71,7 +83,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Header */}
+        {/* Header with Wallet */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">LockedIn</h1>
@@ -79,13 +91,31 @@ export default function HomePage() {
               Stake ETH with friends and compete in challenges
             </p>
           </div>
-          <Button
-            onClick={() => setCreateDialogOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Group
-          </Button>
+          <div className="flex items-center gap-4">
+            <Wallet>
+              <ConnectWallet>
+                <Avatar className="h-6 w-6" />
+                <Name />
+              </ConnectWallet>
+              <WalletDropdown>
+                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                  <Avatar />
+                  <Name />
+                  <Address />
+                  <EthBalance />
+                </Identity>
+                <WalletDropdownDisconnect />
+              </WalletDropdown>
+            </Wallet>
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              className="flex items-center gap-2"
+              disabled={!address}
+            >
+              <Plus className="h-4 w-4" />
+              New Group
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -127,7 +157,7 @@ export default function HomePage() {
           <GroupList
             groups={groups}
             onViewDetails={handleViewDetails}
-            currentUserAddress={mockUserAddress}
+            currentUserAddress={address}
             isLoading={isLoading}
           />
         </div>
@@ -155,7 +185,7 @@ export default function HomePage() {
         open={joinDialogOpen}
         onClose={() => setJoinDialogOpen(false)}
         group={selectedGroup}
-        userAddress={mockUserAddress}
+        userAddress={address}
         onJoinSuccess={handleJoinSuccess}
       />
     </div>

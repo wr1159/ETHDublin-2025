@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import {
+  Transaction,
+  TransactionButton,
+  TransactionStatus,
+} from "@coinbase/onchainkit/transaction";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -9,11 +14,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { settleGroupOnChain } from "@/lib/contractPlaceholders";
+import { settleRoomOnChain, TransactionCall } from "@/lib/contractPlaceholders";
 import { Group, SettleGroupParams } from "@/types/group";
 import { EthDisplay } from "./EthDisplay";
 import { AddressAvatar } from "./AddressAvatar";
-import { Loader2, Trophy, AlertTriangle } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
 
 interface SettleGroupDialogProps {
   open: boolean;
@@ -30,158 +35,179 @@ export function SettleGroupDialog({
 }: SettleGroupDialogProps) {
   const [selectedWinner, setSelectedWinner] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [transactionCalls, setTransactionCalls] = useState<TransactionCall[]>(
+    [],
+  );
+  const [showTransaction, setShowTransaction] = useState(false);
 
-  if (!group) return null;
+  if (!group || group.settled) return null;
 
-  const poolAmount = (
+  const totalPrize = (
     parseFloat(group.entryFeeEth) * group.participants.length
-  ).toFixed(4);
+  ).toString();
 
   const handleSettle = async () => {
-    if (!selectedWinner) {
-      setError("Please select a winner");
-      return;
-    }
+    if (!selectedWinner) return;
 
-    setError("");
     setIsLoading(true);
-
     try {
       const params: SettleGroupParams = {
         groupId: group.id,
         winnerAddress: selectedWinner,
       };
 
-      await settleGroupOnChain(params);
-      onSettleSuccess();
-      onClose();
-    } catch (err) {
-      setError("Failed to settle group. Please try again.");
-      console.error("Error settling group:", err);
+      const calls = await settleRoomOnChain(params);
+      setTransactionCalls(calls);
+      setShowTransaction(true);
+    } catch (error) {
+      console.error("Error preparing settle transaction:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleClose = () => {
-    if (!isLoading) {
-      setSelectedWinner("");
-      setError("");
-      onClose();
-    }
+  const handleTransactionSuccess = () => {
+    onSettleSuccess();
+    setSelectedWinner("");
+    setShowTransaction(false);
+    setTransactionCalls([]);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    setSelectedWinner("");
+    setShowTransaction(false);
+    setTransactionCalls([]);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleCancel}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Settle Group</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5" />
+            Settle Group
+          </DialogTitle>
           <DialogDescription>
-            Select the winner of &quot;{group.name}&quot;. The entire pool will
-            be transferred to the selected participant.
+            Select the challenge winner to distribute the prize pool.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Pool Info */}
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">Prize Pool</span>
-            </div>
-            <EthDisplay
-              amount={poolAmount}
-              className="text-2xl font-bold text-green-600"
-            />
-            <div className="text-sm text-green-700 mt-1">
-              From {group.participants.length} participants ×{" "}
-              <EthDisplay amount={group.entryFeeEth} />
-            </div>
-          </div>
-
-          {/* Winner Selection */}
-          <div>
-            <div className="text-sm font-medium mb-3">Select Winner</div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {group.participants.map((participant) => (
-                <div
-                  key={participant}
-                  onClick={() => setSelectedWinner(participant)}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedWinner === participant
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <AddressAvatar address={participant} size="md" />
-                    <div>
-                      <div className="font-mono text-sm">
-                        {participant.slice(0, 10)}...{participant.slice(-8)}
-                      </div>
-                      {participant === group.owner && (
-                        <div className="text-xs text-muted-foreground">
-                          Group Owner
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {selectedWinner === participant && (
-                    <Trophy className="h-4 w-4 text-blue-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Warning */}
-          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-amber-800">
-              <div className="font-medium">This action cannot be undone</div>
-              <div className="text-xs mt-1">
-                Once settled, the entire pool will be transferred to the
-                selected winner and the group will be closed.
+        {!showTransaction ? (
+          <div className="space-y-4">
+            {/* Prize Pool Display */}
+            <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+              <div className="text-sm text-green-700 font-medium mb-2">
+                Total Prize Pool
+              </div>
+              <EthDisplay
+                amount={totalPrize}
+                className="text-2xl font-bold text-green-600"
+              />
+              <div className="text-xs text-green-600 mt-1">
+                {group.participants.length} participants × {group.entryFeeEth}{" "}
+                ETH
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
-              {error}
+            {/* Winner Selection */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Select Winner</div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {group.participants.map((participant) => (
+                  <div
+                    key={participant}
+                    className={`
+                      flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                      ${
+                        selectedWinner === participant
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }
+                    `}
+                    onClick={() => setSelectedWinner(participant)}
+                  >
+                    <input
+                      type="radio"
+                      checked={selectedWinner === participant}
+                      onChange={() => setSelectedWinner(participant)}
+                      className="text-primary"
+                    />
+                    <AddressAvatar
+                      address={participant}
+                      size="sm"
+                      showAddress
+                      className="flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
 
-          <div className="flex gap-2 pt-4">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSettle}
+                disabled={isLoading || !selectedWinner}
+                className="flex-1"
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Continue
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Please confirm the transaction to settle the group and transfer
+              the prize pool to the winner.
+            </div>
+
+            <div className="p-4 bg-muted/30 rounded-lg space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Winner:</span>
+                <AddressAvatar address={selectedWinner} size="sm" showAddress />
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Prize Amount:</span>
+                <EthDisplay
+                  amount={totalPrize}
+                  className="font-mono font-medium"
+                />
+              </div>
+            </div>
+
+            <Transaction
+              calls={transactionCalls}
+              onStatus={(status) => {
+                if (status.statusName === "success") {
+                  handleTransactionSuccess();
+                }
+              }}
+            >
+              <TransactionButton text="Settle Group & Transfer Prize" />
+              <TransactionStatus />
+            </Transaction>
+
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
-              disabled={isLoading}
-              className="flex-1"
+              onClick={handleCancel}
+              className="w-full"
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSettle}
-              disabled={isLoading || !selectedWinner}
-              className="flex-1"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Settling...
-                </>
-              ) : (
-                <>
-                  <Trophy className="mr-2 h-4 w-4" />
-                  Settle Group
-                </>
-              )}
-            </Button>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
