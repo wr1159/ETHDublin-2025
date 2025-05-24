@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@coinbase/onchainkit": "latest",
+    "@coinbase/onchainkit": "^0.38.13",
     "@ensdomains/thorin": "^0.6.50",
     "@farcaster/frame-sdk": "^0.0.35",
     "@radix-ui/react-avatar": "^1.1.10",

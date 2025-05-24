@@ -17,9 +17,9 @@
   resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.27.1.tgz"
   integrity sha512-1x3D2xEk2fRo3PAhwQwu5UubzgiVWSXTBfWpVd2Mx2AzRqJuDJCsgaDVZ7HB5iGzDW1Hl1sWN2mFyKjmR9uAog==
 
-"@coinbase/onchainkit@latest":
+"@coinbase/onchainkit@^0.38.13":
   version "0.38.13"
-  resolved "https://registry.npmjs.org/@coinbase/onchainkit/-/onchainkit-0.38.13.tgz"
+  resolved "https://registry.yarnpkg.com/@coinbase/onchainkit/-/onchainkit-0.38.13.tgz#ad62e7c40f275c631e717b2a2c7f76a7804ee128"
   integrity sha512-TfRKX13nAZ1DTCtHG4TFRrkW+ACyAPNJA0YudImrdnrNM/eXNEqk9yBbMBfycKMscRzypvnX2hc2eQdo2Calxw==
   dependencies:
     "@farcaster/frame-sdk" "^0.0.28"
