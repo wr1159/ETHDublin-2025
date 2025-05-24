@@ -1,15 +1,17 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@coinbase/onchainkit/identity";
 
 interface AddressAvatarProps {
   address: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  showAddress?: boolean;
 }
 
 export function AddressAvatar({
   address,
   size = "md",
   className = "",
+  showAddress = false,
 }: AddressAvatarProps) {
   const sizeClasses = {
     sm: "h-6 w-6",
@@ -17,23 +19,24 @@ export function AddressAvatar({
     lg: "h-12 w-12",
   };
 
-  // Generate a simple identicon-style background based on address
-  const generateColor = (addr: string) => {
-    const hash = addr.slice(2, 8); // Take first 6 chars after 0x
-    return `#${hash}`;
-  };
-
-  const backgroundColor = generateColor(address);
+  if (showAddress) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Avatar
+          address={address as `0x${string}`}
+          className={sizeClasses[size]}
+        />
+        <span className="font-mono text-sm">
+          {address.slice(0, 6)}...{address.slice(-4)}
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <Avatar className={`${sizeClasses[size]} ${className}`}>
-      <AvatarImage src="" /> {/* Could be ENS avatar in the future */}
-      <AvatarFallback
-        style={{ backgroundColor }}
-        className="text-white text-xs font-semibold"
-      >
-        {address.slice(2, 4).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
+    <Avatar
+      address={address as `0x${string}`}
+      className={`${sizeClasses[size]} ${className}`}
+    />
   );
 }

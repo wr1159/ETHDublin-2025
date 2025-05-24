@@ -117,10 +117,7 @@ export function JoinGroupDialog({
                   key={participant}
                   className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full"
                 >
-                  <AddressAvatar address={participant} size="sm" />
-                  <span className="text-xs font-mono">
-                    {participant.slice(0, 6)}...{participant.slice(-4)}
-                  </span>
+                  <AddressAvatar address={participant} size="sm" showAddress />
                 </div>
               ))}
             </div>

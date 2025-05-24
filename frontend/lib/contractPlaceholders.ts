@@ -46,11 +46,11 @@ export async function fetchGroupsFromChain(): Promise<Group[]> {
     {
       id: "group_1",
       name: "Screen Time Challenge",
-      owner: "0x1234567890123456789012345678901234567890",
+      owner: "0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9",
       entryFeeEth: "0.01",
       participants: [
-        "0x1234567890123456789012345678901234567890",
-        "0x2345678901234567890123456789012345678901",
+        "0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9",
+        "0x42C2d2809Cf1a9061BA8488D10Af9BfF81689d8b",
       ],
       settled: false,
       createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
@@ -58,15 +58,15 @@ export async function fetchGroupsFromChain(): Promise<Group[]> {
     {
       id: "group_2",
       name: "Daily Steps Goal",
-      owner: "0x2345678901234567890123456789012345678901",
+      owner: "0x99e49c6C91640C1B217ae6006fCD8898122b4bFb",
       entryFeeEth: "0.05",
       participants: [
-        "0x2345678901234567890123456789012345678901",
-        "0x3456789012345678901234567890123456789012",
-        "0x4567890123456789012345678901234567890123",
+        "0x42C2d2809Cf1a9061BA8488D10Af9BfF81689d8b",
+        "0x99e49c6C91640C1B217ae6006fCD8898122b4bFb",
+        "0xfaad30F15e36Cd319E1A717d8397b36707B4231a",
       ],
       settled: true,
-      winner: "0x3456789012345678901234567890123456789012",
+      winner: "0xfaad30F15e36Cd319E1A717d8397b36707B4231a",
       createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     },
   ];

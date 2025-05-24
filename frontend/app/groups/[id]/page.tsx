@@ -173,10 +173,11 @@ export default function GroupDetailsPage() {
                   <div className="flex items-center justify-center gap-2 p-4 bg-green-50 rounded-lg border border-green-200">
                     <Trophy className="h-5 w-5 text-green-600" />
                     <span className="text-green-800 font-medium">Winner:</span>
-                    <AddressAvatar address={group.winner} size="sm" />
-                    <span className="text-green-800 font-mono">
-                      {group.winner.slice(0, 10)}...{group.winner.slice(-8)}
-                    </span>
+                    <AddressAvatar
+                      address={group.winner}
+                      size="sm"
+                      showAddress
+                    />
                   </div>
                 )}
               </CardContent>
