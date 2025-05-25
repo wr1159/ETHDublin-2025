@@ -31,7 +31,11 @@ export function Navbar({
       <div className="container mx-auto px-4 py-4 max-w-6xl">
         <div className="flex items-center justify-between flex-col md:flex-row">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">LockedIn</h1>
+            <div>
+              <h1 className="sr-only">LockedIn</h1>
+              <img src="/titlelogo.png" alt="LockedIn" className="h-10" />
+            </div>
+
             <p className="text-muted-foreground text-sm">
               Stake ETH with friends and compete in challenges
             </p>
