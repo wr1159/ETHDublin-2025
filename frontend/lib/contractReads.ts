@@ -40,12 +40,10 @@ export function useRoom(roomId: bigint) {
 // Hook to get all rooms data using batch function (preferred method)
 export function useAllRoomsBatch() {
   const { data: roomCount, isLoading: isCountLoading } = useRoomCount();
-  console.log("roomCount", roomCount);
 
   const roomIds = roomCount
     ? Array.from({ length: Number(roomCount) }, (_, i) => BigInt(i + 1))
     : [];
-  console.log("roomIds", roomIds);
 
   const roomsData = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -57,9 +55,6 @@ export function useAllRoomsBatch() {
       enabled: roomIds.length > 0,
     },
   });
-
-  console.log("roomsData (batch)", roomsData);
-  console.log("roomsData.data (batch)", roomsData.data);
 
   const groups: Group[] = [];
 
@@ -88,8 +83,6 @@ export function useAllRoomsBatch() {
     });
   }
 
-  console.log("groups (batch)", groups);
-
   return {
     data: groups,
     isLoading: isCountLoading || roomsData.isLoading,
@@ -103,12 +96,10 @@ export function useAllRoomsBatch() {
 // Hook to get all rooms data using individual getRoomInfo calls (fallback method)
 export function useAllRoomsIndividual() {
   const { data: roomCount, isLoading: isCountLoading } = useRoomCount();
-  console.log("roomCount", roomCount);
 
   const roomIds = roomCount
     ? Array.from({ length: Number(roomCount) }, (_, i) => BigInt(i + 1))
     : [];
-  console.log("roomIds", roomIds);
 
   // Use individual getRoomInfo calls for each room ID
   const roomsData = useReadContracts({
@@ -123,9 +114,6 @@ export function useAllRoomsIndividual() {
       enabled: roomIds.length > 0,
     },
   });
-
-  console.log("roomsData (individual)", roomsData);
-  console.log("roomsData.data (individual)", roomsData.data);
 
   const groups: Group[] = [];
 
@@ -157,8 +145,6 @@ export function useAllRoomsIndividual() {
     });
   }
 
-  console.log("groups (individual)", groups);
-
   return {
     data: groups,
     isLoading: isCountLoading || roomsData.isLoading,
@@ -176,7 +162,6 @@ export function useAllRooms() {
 
   // If batch has an error, use individual calls
   if (batchResult.error && !individualResult.error) {
-    console.log("Batch failed, using individual calls:", batchResult.error);
     return individualResult;
   }
 
