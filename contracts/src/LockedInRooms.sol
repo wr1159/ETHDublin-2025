@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LockedInRooms is ReentrancyGuard {
     struct Room {
+        string name;
         address owner;
         uint256 entryFee;
         address[] players;
@@ -13,10 +13,27 @@ contract LockedInRooms is ReentrancyGuard {
         address winner;
     }
 
+    struct RoomInfo {
+        uint256 id;
+        string name;
+        address owner;
+        uint256 entryFee;
+        address[] players;
+        bool settled;
+        address winner;
+        uint256 totalPrize;
+        uint256 playerCount;
+    }
+
     uint256 private _roomId;
     mapping(uint256 => Room) public rooms;
 
-    event RoomCreated(uint256 indexed id, address indexed owner, uint256 fee);
+    event RoomCreated(
+        uint256 indexed id,
+        address indexed owner,
+        string name,
+        uint256 fee
+    );
     event Joined(uint256 indexed id, address indexed player);
     event Settled(uint256 indexed id, address indexed winner, uint256 prize);
 
@@ -25,11 +42,16 @@ contract LockedInRooms is ReentrancyGuard {
         _;
     }
 
-    function createRoom(uint256 fee) public returns (uint256) {
+    function createRoom(
+        string memory name,
+        uint256 fee
+    ) public returns (uint256) {
         require(fee > 0, "Entry fee must be greater than 0");
+        require(bytes(name).length > 0, "Room name cannot be empty");
 
         ++_roomId;
         rooms[_roomId] = Room({
+            name: name,
             owner: msg.sender,
             entryFee: fee,
             players: new address[](0),
@@ -37,7 +59,7 @@ contract LockedInRooms is ReentrancyGuard {
             winner: address(0)
         });
 
-        emit RoomCreated(_roomId, msg.sender, fee);
+        emit RoomCreated(_roomId, msg.sender, name, fee);
         return _roomId;
     }
 
@@ -85,34 +107,56 @@ contract LockedInRooms is ReentrancyGuard {
         return false;
     }
 
-    function getRoomPlayers(
-        uint256 id
-    ) external view returns (address[] memory) {
-        return rooms[id].players;
+    // Single comprehensive read function
+    function getRoomInfo(uint256 id) external view returns (RoomInfo memory) {
+        require(id > 0 && id <= _roomId, "Room does not exist");
+
+        Room storage room = rooms[id];
+        uint256 totalPrize = room.entryFee * room.players.length;
+
+        return
+            RoomInfo({
+                id: id,
+                name: room.name,
+                owner: room.owner,
+                entryFee: room.entryFee,
+                players: room.players,
+                settled: room.settled,
+                winner: room.winner,
+                totalPrize: totalPrize,
+                playerCount: room.players.length
+            });
     }
 
     function getRoomCount() external view returns (uint256) {
         return _roomId;
     }
 
-    function getTotalPrize(uint256 id) external view returns (uint256) {
-        Room storage room = rooms[id];
-        return room.entryFee * room.players.length;
-    }
+    // Helper function to get multiple rooms at once
+    function getRoomInfoBatch(
+        uint256[] calldata ids
+    ) external view returns (RoomInfo[] memory) {
+        RoomInfo[] memory roomInfos = new RoomInfo[](ids.length);
 
-    function isRoomSettled(uint256 id) external view returns (bool) {
-        return rooms[id].settled;
-    }
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (ids[i] > 0 && ids[i] <= _roomId) {
+                Room storage room = rooms[ids[i]];
+                uint256 totalPrize = room.entryFee * room.players.length;
 
-    function getRoomWinner(uint256 id) external view returns (address) {
-        return rooms[id].winner;
-    }
+                roomInfos[i] = RoomInfo({
+                    id: ids[i],
+                    name: room.name,
+                    owner: room.owner,
+                    entryFee: room.entryFee,
+                    players: room.players,
+                    settled: room.settled,
+                    winner: room.winner,
+                    totalPrize: totalPrize,
+                    playerCount: room.players.length
+                });
+            }
+        }
 
-    function getRoomOwner(uint256 id) external view returns (address) {
-        return rooms[id].owner;
-    }
-
-    function getRoomEntryFee(uint256 id) external view returns (uint256) {
-        return rooms[id].entryFee;
+        return roomInfos;
     }
 }

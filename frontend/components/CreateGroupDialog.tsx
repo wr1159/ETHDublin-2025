@@ -54,6 +54,7 @@ export function CreateGroupDialog({
       };
 
       const calls = await createRoomOnChain(params);
+      console.log("calls", calls);
       setTransactionCalls(calls);
       setShowTransaction(true);
     } catch (error) {

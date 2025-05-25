@@ -14,24 +14,44 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Group } from "@/types/group";
-import { fetchGroupById } from "@/lib/contractPlaceholders";
+import { useRoom } from "@/lib/contractReads";
 import { AddressAvatar } from "@/components/AddressAvatar";
 import { EthDisplay } from "@/components/EthDisplay";
 import { JoinGroupDialog } from "@/components/JoinGroupDialog";
 import { SettleGroupDialog } from "@/components/SettleGroupDialog";
+import { Navbar } from "@/components/Navbar";
+import { useAccount } from "wagmi";
+import { formatEther } from "viem";
 
 export default function GroupDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { setFrameReady, isFrameReady } = useMiniKit();
+  const { address } = useAccount();
 
-  const [group, setGroup] = useState<Group | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const roomId = params.id ? BigInt(params.id as string) : BigInt(0);
+  const { data: roomData, isLoading, refetch } = useRoom(roomId);
+
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [settleDialogOpen, setSettleDialogOpen] = useState(false);
 
-  // Mock user address - in real app this would come from wallet connection
-  const mockUserAddress = "0x1234567890123456789012345678901234567890";
+  // Convert contract data to Group format
+  const group: Group | null = roomData
+    ? {
+        id: params.id as string,
+        name: roomData.name,
+        owner: roomData.owner,
+        entryFeeEth: formatEther(roomData.entryFee),
+        participants: [...roomData.players],
+        settled: roomData.settled,
+        winner:
+          roomData.winner &&
+          roomData.winner !== "0x0000000000000000000000000000000000000000"
+            ? roomData.winner
+            : undefined,
+        createdAt: new Date().toISOString(),
+      }
+    : null;
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -39,34 +59,12 @@ export default function GroupDetailsPage() {
     }
   }, [setFrameReady, isFrameReady]);
 
-  useEffect(() => {
-    if (params.id) {
-      loadGroup(params.id as string);
-    }
-  }, [params.id]);
-
-  const loadGroup = async (groupId: string) => {
-    setIsLoading(true);
-    try {
-      const fetchedGroup = await fetchGroupById(groupId);
-      setGroup(fetchedGroup);
-    } catch (error) {
-      console.error("Error loading group:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleJoinSuccess = () => {
-    if (params.id) {
-      loadGroup(params.id as string); // Refresh group data
-    }
+    refetch(); // Refresh blockchain data
   };
 
   const handleSettleSuccess = () => {
-    if (params.id) {
-      loadGroup(params.id as string); // Refresh group data
-    }
+    refetch(); // Refresh blockchain data
   };
 
   const formatDate = (isoString: string) => {
@@ -82,6 +80,7 @@ export default function GroupDetailsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
+        <Navbar showCreateButton={false} />
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-muted rounded w-1/3"></div>
@@ -95,6 +94,7 @@ export default function GroupDetailsPage() {
   if (!group) {
     return (
       <div className="min-h-screen bg-background">
+        <Navbar showCreateButton={false} />
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold mb-4">Group Not Found</h1>
@@ -112,16 +112,19 @@ export default function GroupDetailsPage() {
     );
   }
 
-  const isOwner = mockUserAddress === group.owner;
-  const isParticipant = group.participants.includes(mockUserAddress);
-  const canJoin = !isParticipant && !group.settled;
-  const canSettle = isOwner && !group.settled && group.participants.length > 1;
+  const isOwner = address === group.owner;
+  const isParticipant = address && group.participants.includes(address);
+  const canJoin = address && !isParticipant && !group.settled;
+  const canSettle = isOwner && !group.settled;
   const poolAmount = (
     parseFloat(group.entryFeeEth) * group.participants.length
-  ).toFixed(4);
+  ).toFixed(18);
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar showCreateButton={false} />
+
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -162,6 +165,7 @@ export default function GroupDetailsPage() {
                   <EthDisplay
                     amount={poolAmount}
                     className="text-4xl font-bold text-green-600"
+                    precision={18}
                   />
                   <p className="text-sm text-muted-foreground mt-2">
                     From {group.participants.length} participants ×{" "}
@@ -222,6 +226,7 @@ export default function GroupDetailsPage() {
                       <EthDisplay
                         amount={group.entryFeeEth}
                         className="text-sm text-muted-foreground"
+                        precision={18}
                       />
                     </div>
                   ))}
@@ -300,6 +305,7 @@ export default function GroupDetailsPage() {
                   <EthDisplay
                     amount={group.entryFeeEth}
                     className="font-semibold"
+                    precision={18}
                   />
                 </div>
 
@@ -343,7 +349,7 @@ export default function GroupDetailsPage() {
         open={joinDialogOpen}
         onClose={() => setJoinDialogOpen(false)}
         group={group}
-        userAddress={mockUserAddress}
+        userAddress={address}
         onJoinSuccess={handleJoinSuccess}
       />
 
