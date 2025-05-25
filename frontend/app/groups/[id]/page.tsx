@@ -116,9 +116,9 @@ export default function GroupDetailsPage() {
   const isParticipant = address && group.participants.includes(address);
   const canJoin = address && !isParticipant && !group.settled;
   const canSettle = isOwner && !group.settled;
-  const poolAmount = (
-    parseFloat(group.entryFeeEth) * group.participants.length
-  ).toFixed(18);
+  const poolAmount = roomData
+    ? formatEther(roomData.entryFee * BigInt(roomData.players.length))
+    : "0";
 
   return (
     <div className="min-h-screen bg-background">
@@ -165,11 +165,11 @@ export default function GroupDetailsPage() {
                   <EthDisplay
                     amount={poolAmount}
                     className="text-4xl font-bold text-green-600"
-                    precision={18}
+                    showRaw
                   />
                   <p className="text-sm text-muted-foreground mt-2">
                     From {group.participants.length} participants ×{" "}
-                    <EthDisplay amount={group.entryFeeEth} />
+                    <EthDisplay amount={group.entryFeeEth} showRaw />
                   </p>
                 </div>
 
@@ -226,7 +226,7 @@ export default function GroupDetailsPage() {
                       <EthDisplay
                         amount={group.entryFeeEth}
                         className="text-sm text-muted-foreground"
-                        precision={18}
+                        showRaw
                       />
                     </div>
                   ))}
@@ -305,7 +305,7 @@ export default function GroupDetailsPage() {
                   <EthDisplay
                     amount={group.entryFeeEth}
                     className="font-semibold"
-                    precision={18}
+                    showRaw
                   />
                 </div>
 

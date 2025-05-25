@@ -8,7 +8,7 @@ import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/JoinGroupDialog";
 import { Navbar } from "@/components/Navbar";
 import { Group } from "@/types/group";
-import { useAllRooms, useRoomCount } from "@/lib/contractReads";
+import { useAllRooms } from "@/lib/contractReads";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 
@@ -16,8 +16,6 @@ export default function HomePage() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
   const { address } = useAccount();
-  const { data: roomCount } = useRoomCount();
-  console.log("roomCount", roomCount);
   const { data: groups = [], isLoading, refetch } = useAllRooms();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -30,8 +28,7 @@ export default function HomePage() {
     }
   }, [setFrameReady, isFrameReady]);
 
-  const handleGroupCreated = (groupId: string) => {
-    console.log("Group created:", groupId);
+  const handleGroupCreated = () => {
     refetch(); // Refresh the blockchain data
   };
 

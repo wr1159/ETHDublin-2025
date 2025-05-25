@@ -3,12 +3,14 @@ interface EthDisplayProps {
   className?: string;
   showSymbol?: boolean;
   precision?: number;
+  showRaw?: boolean;
 }
 
 export function EthDisplay({
   amount,
   className = "",
   showSymbol = true,
+  showRaw = false,
   precision = 4,
 }: EthDisplayProps) {
   const numericAmount = parseFloat(amount);
@@ -19,7 +21,7 @@ export function EthDisplay({
 
   return (
     <span className={`font-mono ${className}`} title={`${amount} ETH`}>
-      {cleanAmount} {showSymbol && "ETH"}
+      {showRaw ? amount : cleanAmount} {showSymbol && "ETH"}
     </span>
   );
 }
